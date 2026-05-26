@@ -1,0 +1,8 @@
+{
+  "name": "Smart Alarm (alarm clock + Lovelace card)",
+  "homeassistant": "2026.4.0",
+  "render_readme": true,
+  "content_in_root": false,
+  "filename": "card/dist/smart-alarm-card.js",
+  "zip_release": false
+}

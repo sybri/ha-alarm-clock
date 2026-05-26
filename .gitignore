@@ -1,0 +1,35 @@
+## Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.venv/
+venv/
+.python-version
+
+## Node / TypeScript
+node_modules/
+*.log
+.DS_Store
+.npm
+
+## IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+## Build artifacts that are NOT committed
+# Note: card/dist/smart-alarm-card.js IS committed (HACS reads it from releases)
+card/.parcel-cache/
+card/build/
+
+## Local test scaffolding
+config/
+secrets.yaml
