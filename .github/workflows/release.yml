@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build card bundle
+        working-directory: card
+        run: |
+          npm ci
+          npm run build
+
+      - name: Verify integration manifest version matches tag
+        run: |
+          MANIFEST_VERSION=$(python -c 'import json; print(json.load(open("custom_components/smart_alarm/manifest.json"))["version"])')
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$MANIFEST_VERSION" != "$TAG" ]; then
+            echo "::error::manifest.json version ($MANIFEST_VERSION) != tag ($TAG)"
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            card/dist/smart-alarm-card.js
+          body: |
+            See [CHANGELOG.md](https://github.com/sybri/ha-alarm-clock/blob/main/CHANGELOG.md).
