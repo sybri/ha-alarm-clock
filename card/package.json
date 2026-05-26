@@ -5,8 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rollup -c && npm run copy:bundle",
-    "copy:bundle": "node -e \"require('fs').cpSync('dist/smart-alarm-card.js', '../custom_components/smart_alarm/frontend/smart-alarm-card.js')\"",
+    "build": "rollup -c",
     "watch": "rollup -c --watch",
     "lint": "eslint 'src/**/*.ts'",
     "test": "vitest run"
