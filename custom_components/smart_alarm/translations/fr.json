@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Smart Alarm",
+        "description": "Créer un nouveau réveil. Le script start est lancé quand l'alarme se déclenche (ex: sunrise + lecture média).",
+        "data": {
+          "name": "Nom",
+          "time": "Heure (HH:MM)",
+          "days_active": "Jours actifs",
+          "start_script": "Script start (obligatoire)",
+          "stop_script": "Script stop (optionnel)"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Le nom est obligatoire",
+      "invalid_time": "L'heure doit être au format HH:MM",
+      "days_required": "Sélectionnez au moins un jour",
+      "start_script_required": "Un script de démarrage est obligatoire"
+    },
+    "abort": {
+      "already_configured": "Ce réveil existe déjà"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options Smart Alarm",
+        "data": {
+          "condition_entity": "Entité conditionnelle (binary_sensor, optionnel)",
+          "snooze_duration": "Durée du snooze (secondes)"
+        }
+      }
+    }
+  }
+}

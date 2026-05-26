@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Smart Alarm",
+        "description": "Create a new alarm clock. The start_script is what runs when the alarm fires (e.g. sunrise + media play).",
+        "data": {
+          "name": "Name",
+          "time": "Time (HH:MM)",
+          "days_active": "Active days",
+          "start_script": "Start script (required)",
+          "stop_script": "Stop script (optional)"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Name is required",
+      "invalid_time": "Time must be in HH:MM format",
+      "days_required": "Pick at least one day",
+      "start_script_required": "A start script is required"
+    },
+    "abort": {
+      "already_configured": "This alarm already exists"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Smart Alarm options",
+        "data": {
+          "condition_entity": "Condition entity (binary_sensor, optional)",
+          "snooze_duration": "Snooze duration (seconds)"
+        }
+      }
+    }
+  }
+}
