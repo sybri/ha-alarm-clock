@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Install now requires only 1 HACS entry (Integration category).** The
+  Lovelace card is bundled inside the integration and auto-registered with
+  the HA frontend at setup time. No need to add the repo as Plugin too — a
+  former limitation of HACS which refused duplicate-category entries for the
+  same repo. The card stays available in the Lovelace card picker as
+  `smart-alarm-card` and the static asset is served at
+  `/smart_alarm_assets/smart-alarm-card.js`.
+- `npm run build` now also copies the bundle to
+  `custom_components/smart_alarm/frontend/` (committed for HACS).
+- `release.yml` workflow validates the frontend bundle is in sync before
+  tagging.
+
 ### Added
 
 - Integration `smart_alarm`

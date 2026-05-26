@@ -26,15 +26,9 @@ jobs:
           cache-dependency-path: card/package-lock.json
       - run: npm ci
       - run: npm run build
-      - name: Verify bundle exists
+      - name: Verify bundle exists in card/dist
         run: test -s dist/smart-alarm-card.js
+      - name: Verify bundle was copied into integration/frontend
+        run: test -s ../custom_components/smart_alarm/frontend/smart-alarm-card.js
       - run: npm run lint --if-present
       - run: npm test --if-present
-
-  hacs-plugin:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hacs/action@main
-        with:
-          category: plugin

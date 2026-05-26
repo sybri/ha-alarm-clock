@@ -7,6 +7,10 @@ from typing import Final
 DOMAIN: Final = "smart_alarm"
 PLATFORMS: Final = ["sensor"]
 
+# Frontend (Lovelace card auto-served by the integration)
+FRONTEND_URL_PATH: Final = "/smart_alarm_assets"
+FRONTEND_FILENAME: Final = "smart-alarm-card.js"
+
 # Storage
 STORAGE_VERSION: Final = 1
 STORAGE_KEY_PREFIX: Final = "smart_alarm"

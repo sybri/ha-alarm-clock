@@ -18,11 +18,19 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Build card bundle
+      - name: Build card bundle (writes to card/dist and integration/frontend)
         working-directory: card
         run: |
           npm ci
           npm run build
+
+      - name: Verify frontend bundle is committed
+        run: |
+          if ! git diff --quiet HEAD custom_components/smart_alarm/frontend/smart-alarm-card.js; then
+            echo "::error::custom_components/smart_alarm/frontend/smart-alarm-card.js is out of sync with card sources. Run 'npm run build' in card/ and commit."
+            git diff --stat HEAD custom_components/smart_alarm/frontend/smart-alarm-card.js
+            exit 1
+          fi
 
       - name: Verify integration manifest version matches tag
         run: |
@@ -36,7 +44,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            card/dist/smart-alarm-card.js
           body: |
             See [CHANGELOG.md](https://github.com/sybri/ha-alarm-clock/blob/main/CHANGELOG.md).
+
+            HACS installs this release as a single integration (the Lovelace card is auto-served).

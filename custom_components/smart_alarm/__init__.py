@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import SmartAlarmCoordinator
+from .frontend import async_register_card
 from .services import async_register_services, async_unregister_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,6 +18,9 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Smart Alarm from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Serve the Lovelace card from this integration (no separate HACS plugin).
+    await async_register_card(hass)
 
     coordinator = SmartAlarmCoordinator(hass, entry)
     await coordinator.async_load()
@@ -43,8 +47,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator: SmartAlarmCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
         await coordinator.async_shutdown()
 
-        # If no more entries, unregister services
-        if not hass.data[DOMAIN]:
+        # If no more coordinator entries left, unregister services.
+        # (We keep the frontend static path and extra JS URL in place; HA has
+        # no API to remove them and a future re-add should not re-mount.)
+        if not any(
+            isinstance(v, SmartAlarmCoordinator)
+            for v in hass.data[DOMAIN].values()
+        ):
             async_unregister_services(hass)
 
     return unload_ok

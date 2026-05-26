@@ -24,18 +24,17 @@ intelligents :
 
 ### Installation
 
-Smart Alarm livre **deux composants** dans le même repo. Il faut donc
-l'ajouter à HACS **deux fois**.
+Smart Alarm est un **monorepo intégration + carte** qui s'installe en
+**un seul ajout HACS**. La carte Lovelace est servie automatiquement par
+l'intégration au démarrage de Home Assistant.
 
-1. **Intégration** :
-   HACS → Integrations → ⋮ → Custom Repositories →
+1. HACS → Integrations → ⋮ → Custom Repositories →
    `https://github.com/sybri/ha-alarm-clock` en catégorie **Integration** →
-   Install → redémarrer HA
-2. **Carte Lovelace** :
-   HACS → Frontend → ⋮ → Custom Repositories →
-   même URL en catégorie **Plugin** → Install → hard refresh navigateur
-
-Puis Settings → Devices & Services → Add Integration → **Smart Alarm**.
+   Install
+2. Redémarrer Home Assistant
+3. Settings → Devices & Services → Add Integration → **Smart Alarm**
+4. La carte **Smart Alarm Card** apparaît automatiquement dans le picker
+   Lovelace, pas d'ajout HACS Frontend requis.
 
 ### Documentation
 
@@ -64,18 +63,15 @@ clocks:
 
 ### Installation
 
-Smart Alarm ships **two components** in the same repository. Add the repo to
-HACS **twice**:
+Smart Alarm is a **monorepo (integration + card)** installed with a **single
+HACS entry**. The Lovelace card is auto-served by the integration on startup.
 
-1. **Integration**:
-   HACS → Integrations → ⋮ → Custom Repositories →
-   `https://github.com/sybri/ha-alarm-clock` as **Integration** → Install →
-   restart HA
-2. **Lovelace Card**:
-   HACS → Frontend → ⋮ → Custom Repositories →
-   same URL as **Plugin** → Install → browser hard refresh
-
-Then Settings → Devices & Services → Add Integration → **Smart Alarm**.
+1. HACS → Integrations → ⋮ → Custom Repositories →
+   `https://github.com/sybri/ha-alarm-clock` as **Integration** → Install
+2. Restart Home Assistant
+3. Settings → Devices & Services → Add Integration → **Smart Alarm**
+4. The **Smart Alarm Card** automatically appears in the Lovelace picker —
+   no second HACS install needed.
 
 ### Documentation
 

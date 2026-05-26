@@ -9,25 +9,14 @@
 
 ## 2. Installation via HACS (custom repository, en attendant l'ajout à HACS default)
 
-Smart Alarm fournit **deux composants** dans un seul repo : l'intégration
-(Python) et la carte Lovelace (JS). Il faut donc l'ajouter à HACS **deux fois**,
-avec deux catégories différentes.
+Smart Alarm est un **monorepo intégration + carte**. La carte Lovelace est
+embarquée et auto-servie par l'intégration — **un seul ajout HACS suffit**.
 
-### a) Intégration
-
-1. HACS → **Integrations** → menu ⋮ en haut à droite → **Custom Repositories**
+1. HACS → **Integrations** → menu ⋮ → **Custom Repositories**
 2. URL : `https://github.com/sybri/ha-alarm-clock`
 3. Catégorie : **Integration**
-4. Cliquer **Add**, puis **Install**
+4. **Add** → **Install**
 5. Redémarrer Home Assistant
-
-### b) Carte Lovelace
-
-1. HACS → **Frontend** → menu ⋮ → **Custom Repositories**
-2. URL : `https://github.com/sybri/ha-alarm-clock` (la même)
-3. Catégorie : **Plugin**
-4. Cliquer **Add**, puis **Install**
-5. Hard refresh du navigateur (Ctrl+Shift+R)
 
 ## 3. Créer un réveil
 
@@ -47,9 +36,13 @@ avec deux catégories différentes.
 Dans l'éditeur Lovelace :
 
 1. **+ Add Card**
-2. Chercher **Smart Alarm Card**
+2. Chercher **Smart Alarm Card** (apparaît automatiquement)
 3. Sélectionner votre `sensor.smart_alarm_<nom>` dans l'éditeur visuel
 4. Sauvegarder
+
+> **Si la carte n'apparaît pas** : hard refresh du navigateur (Ctrl+Shift+R).
+> Le JS est servi sur `/smart_alarm_assets/smart-alarm-card.js`, tu peux
+> vérifier sa présence via une simple visite de l'URL.
 
 ## 5. Options avancées (par alarme)
 
@@ -71,21 +64,14 @@ Settings → Devices & Services → **Smart Alarm** → ⋮ sur l'entrée → **
 
 ## 2. HACS installation (custom repository, until merged into HACS default)
 
-Smart Alarm ships **two components** in a single repo: the Python integration
-and the Lovelace card. Add the repo to HACS **twice** with different categories.
-
-### a) Integration
+Smart Alarm is a **monorepo (integration + card)**. The Lovelace card is
+bundled with and auto-served by the integration — **a single HACS install is
+all you need**.
 
 1. HACS → **Integrations** → ⋮ → **Custom Repositories**
 2. URL: `https://github.com/sybri/ha-alarm-clock`
 3. Category: **Integration**
 4. Add → Install → restart HA
-
-### b) Lovelace card
-
-1. HACS → **Frontend** → ⋮ → **Custom Repositories**
-2. Same URL, Category: **Plugin**
-3. Add → Install → browser hard refresh
 
 ## 3. Create an alarm
 
@@ -94,7 +80,12 @@ Fill name, time, days, start script (and optionally stop script).
 
 ## 4. Add the card
 
-Dashboard editor → + Add Card → **Smart Alarm Card** → pick your entity.
+Dashboard editor → + Add Card → **Smart Alarm Card** (auto-listed) → pick
+your entity.
+
+> If the card isn't listed, hard-refresh the browser (Ctrl+Shift+R). The JS
+> is served at `/smart_alarm_assets/smart-alarm-card.js`; you can verify by
+> hitting that URL.
 
 ## 5. Per-alarm advanced options
 
