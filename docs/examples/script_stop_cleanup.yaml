@@ -1,0 +1,30 @@
+# Example "stop" script for Smart Alarm
+#
+# Optional. Wire in the Smart Alarm config flow as `stop_script` if you want a
+# dedicated cleanup routine when the user presses Stop, or on Snooze
+# transitions (Smart Alarm calls `script.turn_off(start_script)` then
+# `script.turn_on(stop_script)` if defined).
+#
+# This example:
+#   - Stops the sunrise (turns the LED strip off)
+#   - Sends a media_stop command to the Alexa device
+#   - Lowers Alexa volume to a safe baseline for next time
+
+reveil_noah_cleanup:
+  alias: "Réveil Noah — Cleanup"
+  mode: single
+  sequence:
+    - service: button.press
+      target:
+        entity_id: button.led_strip_stop_sunrise
+    - service: light.turn_off
+      target:
+        entity_id: light.lit
+    - service: media_player.media_stop
+      target:
+        entity_id: media_player.alexa_de_noah
+    - service: media_player.volume_set
+      target:
+        entity_id: media_player.alexa_de_noah
+      data:
+        volume_level: 0.05

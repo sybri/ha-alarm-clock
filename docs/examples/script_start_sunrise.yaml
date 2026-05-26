@@ -1,0 +1,48 @@
+# Example "start" script for Smart Alarm
+#
+# Wire this script in the Smart Alarm config flow as `start_script`.
+# Smart Alarm calls `script.turn_on(script.reveil_noah_scenario)` at the
+# scheduled time; when this script finishes, Smart Alarm auto-stops (state
+# back to `idle`).
+#
+# This example does:
+#   1. Trigger a Sunrise on a WS2811 LED strip (button on an ESPHome node)
+#   2. Wait half the sunrise duration so the alarm peaks AT the configured time
+#   3. Set the Alexa volume very low, then play a routine
+#   4. Fade the volume from 0.01 to 1.0 over ~3 minutes (30 steps × 6 s)
+
+reveil_noah_scenario:
+  alias: "Réveil Noah — Sunrise + Alexa routine"
+  mode: restart  # important: allows the Smart Alarm to interrupt cleanly
+  sequence:
+    - service: button.press
+      target:
+        entity_id: button.led_strip_start_sunrise
+
+    - delay:
+        seconds: >
+          {{ (states('number.led_strip_sunrise_total_duration_s') | float / 2) | int }}
+
+    - service: media_player.volume_set
+      target:
+        entity_id: media_player.alexa_de_noah
+      data:
+        volume_level: 0.01
+
+    - service: media_player.play_media
+      target:
+        entity_id: media_player.alexa_de_noah
+      data:
+        media_content_id: "réveil noah"   # name of an Alexa routine
+        media_content_type: routine
+
+    - repeat:
+        count: 30
+        sequence:
+          - service: media_player.volume_set
+            target:
+              entity_id: media_player.alexa_de_noah
+            data:
+              volume_level: >
+                {{ [ (state_attr('media_player.alexa_de_noah', 'volume_level') | float + 0.01), 1.0 ] | min }}
+          - delay: "00:00:06"

@@ -1,0 +1,30 @@
+# Example: listen to Smart Alarm events from another automation.
+#
+# Smart Alarm fires 3 events on the HA bus:
+#   - smart_alarm_triggered  { alarm_id, name, time }
+#   - smart_alarm_stopped    { alarm_id, name, reason: manual|auto|snooze }
+#   - smart_alarm_snoozed    { alarm_id, name, next_trigger, snooze_count }
+#
+# This example logs every alarm event to a persistent notification, useful for
+# debugging and for users who want to track snooze counts over time.
+
+alias: "Smart Alarm event logger"
+description: "Logs Smart Alarm events to a persistent notification"
+mode: queued
+max: 10
+
+triggers:
+  - trigger: event
+    event_type: smart_alarm_triggered
+  - trigger: event
+    event_type: smart_alarm_stopped
+  - trigger: event
+    event_type: smart_alarm_snoozed
+
+actions:
+  - service: persistent_notification.create
+    data:
+      title: "Smart Alarm — {{ trigger.event.event_type }}"
+      message: >-
+        Alarm {{ trigger.event.data.name }} ({{ trigger.event.data.alarm_id }})
+        — data: {{ trigger.event.data | tojson }}

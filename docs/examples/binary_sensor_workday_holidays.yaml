@@ -1,0 +1,28 @@
+# Example: a binary_sensor that combines several conditions for use as the
+# Smart Alarm "condition entity".
+#
+# The Smart Alarm condition entity accepts ANY binary_sensor. On the alarm's
+# scheduled time, if this entity is `on` → the alarm fires; if `off` → it's
+# silently skipped and rescheduled.
+#
+# This template combines:
+#   - workday (built-in HA `workday` integration, FR holidays)
+#   - vacances scolaires zone B (HACS vacances_scolaires integration)
+#
+# Place this in your packages/ or template: section.
+
+template:
+  - binary_sensor:
+      - name: "Should alarm noah today"
+        unique_id: smart_alarm_condition_noah
+        state: >-
+          {{
+            is_state('binary_sensor.workday', 'on')
+            and is_state('sensor.vacances_scolaires_aujourd_hui_zone_b', 'off')
+          }}
+        icon: >-
+          {% if is_state('binary_sensor.workday', 'on') and is_state('sensor.vacances_scolaires_aujourd_hui_zone_b', 'off') %}
+            mdi:alarm-check
+          {% else %}
+            mdi:alarm-off
+          {% endif %}
