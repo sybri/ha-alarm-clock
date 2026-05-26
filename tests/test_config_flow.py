@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from custom_components.smart_alarm.const import (
     CONF_DAYS,
     CONF_NAME,
+    CONF_SCHEDULE,
     CONF_SNOOZE_DURATION,
     CONF_START_SCRIPT,
     CONF_STOP_SCRIPT,
@@ -43,8 +44,14 @@ async def test_user_flow_minimal(hass: HomeAssistant) -> None:
 
     assert result2["type"] == "create_entry"
     assert result2["title"] == "Réveil Noah"
-    assert result2["data"][CONF_TIME] == "07:00"
-    assert result2["data"][CONF_DAYS] == [0, 1, 2, 3, 4]
+    # Schedule built from time + selected days: every day -> "07:00".
+    assert result2["data"][CONF_SCHEDULE] == {
+        "0": "07:00",
+        "1": "07:00",
+        "2": "07:00",
+        "3": "07:00",
+        "4": "07:00",
+    }
     assert result2["data"][CONF_START_SCRIPT] == "script.reveil_noah_scenario"
     assert result2["data"][CONF_STOP_SCRIPT] is None
     assert result2["options"][CONF_SNOOZE_DURATION] == DEFAULT_SNOOZE_DURATION

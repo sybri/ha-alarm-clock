@@ -17,28 +17,37 @@ import {
 import { cardStyles } from "./styles";
 import type { SmartAlarmAttributes, SmartAlarmCardConfig } from "./types";
 
-// Helpful console banner (matches lovelace-mushroom convention)
 console.info(
   `%c  SMART-ALARM-CARD  %c  v${CARD_VERSION}  `,
   "color: white; background: #0288d1; font-weight: 700",
   "color: #0288d1; background: white; font-weight: 700",
 );
 
-// Register card in the picker
 const w = window as unknown as { customCards?: unknown[] };
 w.customCards = w.customCards || [];
 w.customCards.push({
   type: CARD_NAME,
   name: "Smart Alarm Card",
-  description: "Control a Smart Alarm clock from your dashboard.",
+  description: "Bedside-clock style control for a Smart Alarm.",
   preview: false,
 });
+
+const DEFAULT_TIME = "07:00";
+
+// JS Date.getDay(): 0=Sunday..6=Saturday → backend 0=Monday..6=Sunday.
+function backendWeekday(d: Date): number {
+  return (d.getDay() + 6) % 7;
+}
 
 @customElement(CARD_NAME)
 export class SmartAlarmCard extends LitElement implements LovelaceCard {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _config?: SmartAlarmCardConfig;
+  @state() private _selectedDay = backendWeekday(new Date());
+  @state() private _now = new Date();
+
+  private _clockTimer?: number;
 
   public static styles = cardStyles;
 
@@ -52,27 +61,39 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
   }
 
   public setConfig(config: SmartAlarmCardConfig): void {
-    if (!config?.entity) {
-      throw new Error("entity is required");
-    }
+    if (!config?.entity) throw new Error("entity is required");
     this._config = config;
   }
 
   public getCardSize(): number {
-    return 3;
+    return 5;
+  }
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._clockTimer = window.setInterval(() => {
+      this._now = new Date();
+    }, 1000);
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._clockTimer) window.clearInterval(this._clockTimer);
   }
 
   // --- helpers ---
 
+  private _use12h(): boolean {
+    return this._config?.time_format === "12h";
+  }
+
   private _state(): string | undefined {
-    if (!this._config || !this.hass) return undefined;
-    return this.hass.states[this._config.entity]?.state;
+    return this.hass?.states[this._config!.entity]?.state;
   }
 
   private _attrs(): SmartAlarmAttributes {
-    if (!this._config || !this.hass) return {};
     return (
-      (this.hass.states[this._config.entity]?.attributes as SmartAlarmAttributes) ||
+      (this.hass?.states[this._config!.entity]?.attributes as SmartAlarmAttributes) ||
       {}
     );
   }
@@ -84,61 +105,90 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
     return friendly || this._config?.entity || "Alarm";
   }
 
+  private _schedule(): Record<string, string> {
+    return this._attrs().schedule ?? {};
+  }
+
+  private _dayTime(day: number): string | undefined {
+    return this._schedule()[String(day)];
+  }
+
+  private _fmtTime(hhmm: string): string {
+    const [h, m] = hhmm.split(":").map((x) => parseInt(x, 10));
+    if (this._use12h()) {
+      const ampm = h < 12 ? "AM" : "PM";
+      const hh = h % 12 === 0 ? 12 : h % 12;
+      return `${hh}:${String(m).padStart(2, "0")} ${ampm}`;
+    }
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+
   private _formatNextTrigger(iso?: string | null): string {
     if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
     const dateStr = d.toLocaleDateString(undefined, {
-      weekday: "long",
+      weekday: "short",
       day: "2-digit",
       month: "short",
     });
     const timeStr = d.toLocaleTimeString(undefined, {
       hour: "2-digit",
       minute: "2-digit",
+      hour12: this._use12h(),
     });
     return `${dateStr} · ${timeStr}`;
   }
 
   // --- service calls ---
 
-  private _callService(service: string, extra: Record<string, unknown> = {}): void {
-    if (!this._config || !this.hass) return;
+  private _call(service: string, extra: Record<string, unknown> = {}): void {
     this.hass.callService(DOMAIN, service, {
-      entity_id: this._config.entity,
+      entity_id: this._config!.entity,
       ...extra,
     });
   }
 
   private _onToggleEnable = (): void => {
-    const state = this._state();
-    this._callService(state === STATE_DISABLED ? "enable" : "disable");
+    this._call(this._state() === STATE_DISABLED ? "enable" : "disable");
   };
 
-  private _onTimeChange = (ev: Event): void => {
-    const target = ev.target as HTMLInputElement;
-    if (!target.value) return;
-    this._callService("set_time", { time: target.value });
+  private _onSelectDay = (day: number): void => {
+    this._selectedDay = day;
   };
 
-  private _onDayToggle = (day: number): void => {
-    const days = new Set(this._attrs().days_active ?? []);
-    if (days.has(day)) days.delete(day);
-    else days.add(day);
-    this._callService("set_days", { days: Array.from(days).sort() });
+  private _onToggleSelectedDay = (): void => {
+    const day = this._selectedDay;
+    if (this._dayTime(day)) {
+      this._call("clear_day", { day });
+    } else {
+      this._call("set_day_time", { day, time: DEFAULT_TIME });
+    }
   };
 
-  private _onTestNow = (): void => {
-    this._callService("trigger_now");
+  private _onHour = (ev: Event): void => {
+    const h = parseInt((ev.target as HTMLInputElement).value, 10);
+    const cur = this._dayTime(this._selectedDay) ?? DEFAULT_TIME;
+    const m = cur.split(":")[1];
+    this._call("set_day_time", {
+      day: this._selectedDay,
+      time: `${String(h).padStart(2, "0")}:${m}`,
+    });
   };
 
-  private _onSnooze = (): void => {
-    this._callService("snooze");
+  private _onMinute = (ev: Event): void => {
+    const m = parseInt((ev.target as HTMLInputElement).value, 10);
+    const cur = this._dayTime(this._selectedDay) ?? DEFAULT_TIME;
+    const h = cur.split(":")[0];
+    this._call("set_day_time", {
+      day: this._selectedDay,
+      time: `${h}:${String(m).padStart(2, "0")}`,
+    });
   };
 
-  private _onStop = (): void => {
-    this._callService("stop");
-  };
+  private _onTestNow = (): void => this._call("trigger_now");
+  private _onSnooze = (): void => this._call("snooze");
+  private _onStop = (): void => this._call("stop");
 
   // --- render ---
 
@@ -147,30 +197,36 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
 
     const state = this._state();
     if (state === undefined) {
-      return html`<ha-card><div class="row">Entity not found</div></ha-card>`;
+      return html`<ha-card><div class="header">Entity not found</div></ha-card>`;
     }
 
     const attrs = this._attrs();
-    const isDisabled = state === STATE_DISABLED;
-    const isTriggered = state === STATE_TRIGGERED;
-    const isSnoozed = state === STATE_SNOOZED;
-    const isActive = isTriggered || isSnoozed;
-
-    const classes = classMap({
-      [`state-${state}`]: true,
-    });
+    const isActive = state === STATE_TRIGGERED || state === STATE_SNOOZED;
+    const classes = classMap({ [`state-${state}`]: true });
 
     return html`
       <ha-card class=${classes}>
+        ${this._renderClock(state)}
         ${this._config.hide_header ? nothing : this._renderHeader(state, attrs)}
-        ${this._renderTimeRow(attrs)}
-        ${this._config.hide_days ? nothing : this._renderDays(attrs)}
-        ${this._renderActions(isActive, isDisabled)}
+        <div class="divider"></div>
+        ${this._config.hide_days ? nothing : this._renderDays()}
+        ${this._config.hide_days ? nothing : this._renderEditor()}
+        ${this._renderActions(isActive, state === STATE_DISABLED)}
       </ha-card>
     `;
   }
 
-  private _renderHeader(state: string, attrs: SmartAlarmAttributes): TemplateResult {
+  private _renderClock(state: string): TemplateResult {
+    const timeStr = this._now.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: this._use12h(),
+    });
+    const dateStr = this._now.toLocaleDateString(undefined, {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+    });
     const icon =
       state === STATE_TRIGGERED
         ? "mdi:bell-ring"
@@ -179,14 +235,24 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
         : state === STATE_DISABLED
         ? "mdi:alarm-off"
         : "mdi:alarm";
+    return html`
+      <div class="clock">
+        <div class="clock-time">
+          <ha-icon
+            icon=${icon}
+            style="--mdc-icon-size:28px;vertical-align:middle;margin-right:8px;"
+          ></ha-icon>${timeStr}
+        </div>
+        <div class="clock-date">${dateStr}</div>
+      </div>
+    `;
+  }
 
+  private _renderHeader(state: string, attrs: SmartAlarmAttributes): TemplateResult {
     return html`
       <div class="header">
         <div class="header-info">
-          <div class="title">
-            <ha-icon icon=${icon}></ha-icon>
-            ${this._name()}
-          </div>
+          <div class="title">${this._name()}</div>
           <div class="next-trigger">
             ${state === STATE_DISABLED
               ? "Désactivé"
@@ -201,40 +267,83 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private _renderTimeRow(attrs: SmartAlarmAttributes): TemplateResult {
+  private _renderDays(): TemplateResult {
     return html`
-      <div class="row">
-        <div class="row-label">Heure</div>
-        <input
-          class="time-picker"
-          type="time"
-          .value=${attrs.time || "07:00"}
-          @change=${this._onTimeChange}
-        />
+      <div class="day-row">
+        ${DAY_LABELS_SHORT.map((label, idx) => {
+          const t = this._dayTime(idx);
+          const classes = classMap({
+            day: true,
+            selected: idx === this._selectedDay,
+            active: !!t,
+          });
+          return html`
+            <div
+              class=${classes}
+              title=${DAY_LABELS_LONG[idx]}
+              role="button"
+              tabindex="0"
+              @click=${() => this._onSelectDay(idx)}
+              @keydown=${(e: KeyboardEvent) => {
+                if (e.key === "Enter" || e.key === " ") this._onSelectDay(idx);
+              }}
+            >
+              <span class="dow">${label}</span>
+              <span class="dtime ${t ? "" : "off"}"
+                >${t ? this._fmtTime(t) : "—"}</span
+              >
+            </div>
+          `;
+        })}
       </div>
     `;
   }
 
-  private _renderDays(attrs: SmartAlarmAttributes): TemplateResult {
-    const active = new Set(attrs.days_active ?? []);
+  private _renderEditor(): TemplateResult {
+    const day = this._selectedDay;
+    const t = this._dayTime(day);
+    const enabled = !!t;
+    const [h, m] = (t ?? DEFAULT_TIME).split(":").map((x) => parseInt(x, 10));
+
     return html`
-      <div class="day-chips">
-        ${DAY_LABELS_SHORT.map(
-          (label, idx) => html`
-            <div
-              class=${classMap({ "day-chip": true, active: active.has(idx) })}
-              title=${DAY_LABELS_LONG[idx]}
-              role="button"
-              tabindex="0"
-              @click=${() => this._onDayToggle(idx)}
-              @keydown=${(e: KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") this._onDayToggle(idx);
-              }}
-            >
-              ${label}
-            </div>
-          `,
-        )}
+      <div class="editor">
+        <div class="editor-head">
+          <span class="editor-day">${DAY_LABELS_LONG[day]}</span>
+          <ha-switch
+            .checked=${enabled}
+            @change=${this._onToggleSelectedDay}
+          ></ha-switch>
+        </div>
+        ${enabled
+          ? html`
+              <div class="slider-row">
+                <span class="slider-label">Heure</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="23"
+                  step="1"
+                  .value=${String(h)}
+                  @input=${this._onHour}
+                />
+                <span class="slider-value">${this._fmtTime(t!)}</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-label">Minute</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="59"
+                  step="1"
+                  .value=${String(m)}
+                  @input=${this._onMinute}
+                />
+                <span class="slider-value">${String(m).padStart(2, "0")}</span>
+              </div>
+            `
+          : html`<div class="day-off-hint">
+              Jour désactivé — active-le pour régler l'heure.
+            </div>`}
       </div>
     `;
   }
@@ -246,19 +355,16 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
           ? nothing
           : html`
               <button class="action-btn test" @click=${this._onTestNow}>
-                <ha-icon icon="mdi:test-tube"></ha-icon>
-                Tester
+                <ha-icon icon="mdi:test-tube"></ha-icon>Tester
               </button>
             `}
         ${isActive
           ? html`
               <button class="action-btn snooze" @click=${this._onSnooze}>
-                <ha-icon icon="mdi:alarm-snooze"></ha-icon>
-                Snooze
+                <ha-icon icon="mdi:alarm-snooze"></ha-icon>Snooze
               </button>
               <button class="action-btn stop" @click=${this._onStop}>
-                <ha-icon icon="mdi:stop-circle"></ha-icon>
-                Arrêter
+                <ha-icon icon="mdi:stop-circle"></ha-icon>Arrêter
               </button>
             `
           : nothing}

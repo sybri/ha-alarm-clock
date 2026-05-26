@@ -35,6 +35,16 @@ def _integration_version() -> str:
         return "0"
 
 
+def _cache_buster(card_path: pathlib.Path) -> str:
+    """Return ``<version>-<mtime>`` so dev rebuilds bypass the browser cache."""
+    version = _integration_version()
+    try:
+        mtime = int(card_path.stat().st_mtime)
+    except OSError:
+        mtime = 0
+    return f"{version}-{mtime}"
+
+
 async def async_register_card(hass: HomeAssistant) -> None:
     """Register the static path and frontend JS URL.
 
@@ -45,11 +55,12 @@ async def async_register_card(hass: HomeAssistant) -> None:
         return
 
     card_dir = pathlib.Path(__file__).parent / "frontend"
-    if not (card_dir / FRONTEND_FILENAME).exists():
+    card_path = card_dir / FRONTEND_FILENAME
+    if not card_path.exists():
         _LOGGER.warning(
             "Smart Alarm bundled card missing at %s; "
             "card will not be available in Lovelace picker",
-            card_dir / FRONTEND_FILENAME,
+            card_path,
         )
         return
 
@@ -63,8 +74,7 @@ async def async_register_card(hass: HomeAssistant) -> None:
         ]
     )
 
-    version = _integration_version()
-    url = f"{FRONTEND_URL_PATH}/{FRONTEND_FILENAME}?v={version}"
+    url = f"{FRONTEND_URL_PATH}/{FRONTEND_FILENAME}?v={_cache_buster(card_path)}"
     add_extra_js_url(hass, url)
 
     domain_data[_REGISTERED_FLAG] = True

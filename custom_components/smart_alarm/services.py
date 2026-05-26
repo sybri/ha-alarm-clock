@@ -14,10 +14,10 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 
 from .const import (
     DOMAIN,
+    SERVICE_CLEAR_DAY,
     SERVICE_DISABLE,
     SERVICE_ENABLE,
-    SERVICE_SET_DAYS,
-    SERVICE_SET_TIME,
+    SERVICE_SET_DAY_TIME,
     SERVICE_SNOOZE,
     SERVICE_STOP,
     SERVICE_TRIGGER_NOW,
@@ -29,24 +29,22 @@ _LOGGER = logging.getLogger(__name__)
 _TIME_RE = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
 
 ATTR_TIME = "time"
-ATTR_DAYS = "days"
+ATTR_DAY = "day"
 
 _BASE_SCHEMA = vol.Schema(
     {vol.Required(ATTR_ENTITY_ID): cv.entity_id},
     extra=vol.ALLOW_EXTRA,
 )
 
-_SET_TIME_SCHEMA = _BASE_SCHEMA.extend(
-    {vol.Required(ATTR_TIME): vol.All(str, vol.Match(_TIME_RE))}
+_SET_DAY_TIME_SCHEMA = _BASE_SCHEMA.extend(
+    {
+        vol.Required(ATTR_DAY): vol.All(vol.Coerce(int), vol.Range(min=0, max=6)),
+        vol.Required(ATTR_TIME): vol.All(str, vol.Match(_TIME_RE)),
+    }
 )
 
-_SET_DAYS_SCHEMA = _BASE_SCHEMA.extend(
-    {
-        vol.Required(ATTR_DAYS): vol.All(
-            cv.ensure_list,
-            [vol.All(vol.Coerce(int), vol.Range(min=0, max=6))],
-        )
-    }
+_CLEAR_DAY_SCHEMA = _BASE_SCHEMA.extend(
+    {vol.Required(ATTR_DAY): vol.All(vol.Coerce(int), vol.Range(min=0, max=6))}
 )
 
 
@@ -57,9 +55,7 @@ def _resolve_coordinator(
     registry = er.async_get(hass)
     entry = registry.async_get(entity_id)
     if entry is None or entry.platform != DOMAIN:
-        raise HomeAssistantError(
-            f"{entity_id} is not a smart_alarm entity"
-        )
+        raise HomeAssistantError(f"{entity_id} is not a smart_alarm entity")
     coordinators: dict[str, SmartAlarmCoordinator] = hass.data.get(DOMAIN, {})
     coord = coordinators.get(entry.config_entry_id)
     if coord is None:
@@ -72,7 +68,6 @@ def _resolve_coordinator(
 def _coordinators_for_call(
     hass: HomeAssistant, call: ServiceCall
 ) -> Iterable[SmartAlarmCoordinator]:
-    """Resolve all coordinators targeted by a service call."""
     ids = call.data.get(ATTR_ENTITY_ID)
     if isinstance(ids, str):
         ids = [ids]
@@ -92,15 +87,16 @@ def async_register_services(hass: HomeAssistant) -> None:
         for coord in _coordinators_for_call(hass, call):
             await coord.async_disable()
 
-    async def _set_time(call: ServiceCall) -> None:
+    async def _set_day_time(call: ServiceCall) -> None:
+        day = int(call.data[ATTR_DAY])
         time_value = call.data[ATTR_TIME]
         for coord in _coordinators_for_call(hass, call):
-            await coord.async_set_time(time_value)
+            await coord.async_set_day_time(day, time_value)
 
-    async def _set_days(call: ServiceCall) -> None:
-        days = call.data[ATTR_DAYS]
+    async def _clear_day(call: ServiceCall) -> None:
+        day = int(call.data[ATTR_DAY])
         for coord in _coordinators_for_call(hass, call):
-            await coord.async_set_days(days)
+            await coord.async_clear_day(day)
 
     async def _snooze(call: ServiceCall) -> None:
         for coord in _coordinators_for_call(hass, call):
@@ -117,10 +113,10 @@ def async_register_services(hass: HomeAssistant) -> None:
     hass.services.async_register(DOMAIN, SERVICE_ENABLE, _enable, schema=_BASE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_DISABLE, _disable, schema=_BASE_SCHEMA)
     hass.services.async_register(
-        DOMAIN, SERVICE_SET_TIME, _set_time, schema=_SET_TIME_SCHEMA
+        DOMAIN, SERVICE_SET_DAY_TIME, _set_day_time, schema=_SET_DAY_TIME_SCHEMA
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_SET_DAYS, _set_days, schema=_SET_DAYS_SCHEMA
+        DOMAIN, SERVICE_CLEAR_DAY, _clear_day, schema=_CLEAR_DAY_SCHEMA
     )
     hass.services.async_register(DOMAIN, SERVICE_SNOOZE, _snooze, schema=_BASE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_STOP, _stop, schema=_BASE_SCHEMA)
@@ -132,8 +128,8 @@ def async_register_services(hass: HomeAssistant) -> None:
 _ALL_SERVICES = (
     SERVICE_ENABLE,
     SERVICE_DISABLE,
-    SERVICE_SET_TIME,
-    SERVICE_SET_DAYS,
+    SERVICE_SET_DAY_TIME,
+    SERVICE_CLEAR_DAY,
     SERVICE_SNOOZE,
     SERVICE_STOP,
     SERVICE_TRIGGER_NOW,

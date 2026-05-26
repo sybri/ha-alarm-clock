@@ -11,13 +11,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     ATTR_CONDITION_ENTITY,
-    ATTR_DAYS_ACTIVE,
+    ATTR_NEXT_DAY,
     ATTR_NEXT_TRIGGER,
+    ATTR_SCHEDULE,
     ATTR_SNOOZE_COUNT,
     ATTR_SNOOZE_DURATION,
     ATTR_START_SCRIPT,
     ATTR_STOP_SCRIPT,
-    ATTR_TIME,
     DOMAIN,
 )
 from .coordinator import SmartAlarmCoordinator
@@ -65,9 +65,9 @@ class SmartAlarmEntity(SensorEntity):
         c = self._coordinator
         next_ts = c.next_trigger.isoformat() if c.next_trigger else None
         return {
-            ATTR_TIME: c.time,
-            ATTR_DAYS_ACTIVE: c.days_active,
+            ATTR_SCHEDULE: c.schedule,
             ATTR_NEXT_TRIGGER: next_ts,
+            ATTR_NEXT_DAY: c.next_day,
             ATTR_CONDITION_ENTITY: c.condition_entity,
             ATTR_START_SCRIPT: c.start_script,
             ATTR_STOP_SCRIPT: c.stop_script,

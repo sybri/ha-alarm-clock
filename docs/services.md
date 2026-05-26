@@ -10,17 +10,19 @@ Transition to `idle`, recompute `next_trigger`. No-op if already active.
 ## `smart_alarm.disable`
 Transition to `disabled`, clear `next_trigger`, cancel any pending snooze.
 
-## `smart_alarm.set_time`
-Update the alarm time and re-arm.
+## `smart_alarm.set_day_time`
+Set (and enable) the alarm time for one weekday. The schedule holds one time
+per day, so this is how you give Monday 07:00 and Saturday 09:30.
 
 **Data:**
+- `day` *(required)* — weekday int, 0=Monday … 6=Sunday
 - `time` *(required)* — `HH:MM` (24h)
 
-## `smart_alarm.set_days`
-Update the days the alarm is active. 0=Monday…6=Sunday.
+## `smart_alarm.clear_day`
+Disable the alarm for one weekday (removes its time from the schedule).
 
 **Data:**
-- `days` *(required)* — list of int between 0 and 6, e.g. `[0,1,2,3,4]`
+- `day` *(required)* — weekday int, 0=Monday … 6=Sunday
 
 ## `smart_alarm.snooze`
 Snooze the currently-firing alarm. Behaviour:
@@ -53,7 +55,8 @@ Fired when the alarm enters the `triggered` state.
 event_data:
   alarm_id: smart_alarm_reveil_noah
   name: "Réveil Noah"
-  time: "07:00"
+  day: 0          # weekday that fired (0=Mon..6=Sun), null for trigger_now
+  time: "07:00"   # that day's scheduled time, null for trigger_now
 ```
 
 ## `smart_alarm_stopped`

@@ -1,6 +1,6 @@
 {
   "name": "smart-alarm-card",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lovelace card for the Smart Alarm Home Assistant integration",
   "private": true,
   "type": "module",

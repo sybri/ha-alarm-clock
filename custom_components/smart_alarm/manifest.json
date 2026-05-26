@@ -8,5 +8,5 @@
   "issue_tracker": "https://github.com/sybri/ha-alarm-clock/issues",
   "requirements": [],
   "integration_type": "service",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

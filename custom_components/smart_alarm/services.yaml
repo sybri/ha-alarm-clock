@@ -14,53 +14,50 @@ disable:
       integration: smart_alarm
       domain: sensor
 
-set_time:
-  name: Set time
-  description: Update the alarm time.
+set_day_time:
+  name: Set day time
+  description: Set (and enable) the alarm time for a given weekday.
   target:
     entity:
       integration: smart_alarm
       domain: sensor
   fields:
+    day:
+      name: Day
+      description: Weekday (0=Monday .. 6=Sunday).
+      required: true
+      example: 0
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
     time:
       name: Time
-      description: New alarm time in HH:MM format.
+      description: Alarm time in HH:MM format.
       required: true
       example: "07:00"
       selector:
         text:
 
-set_days:
-  name: Set active days
-  description: Set which days the alarm is active (Mon=0..Sun=6).
+clear_day:
+  name: Clear day
+  description: Disable the alarm for a given weekday.
   target:
     entity:
       integration: smart_alarm
       domain: sensor
   fields:
-    days:
-      name: Days
-      description: List of active weekday integers (0=Mon..6=Sun).
+    day:
+      name: Day
+      description: Weekday (0=Monday .. 6=Sunday).
       required: true
-      example: "[0, 1, 2, 3, 4]"
+      example: 5
       selector:
-        select:
-          multiple: true
-          options:
-            - value: "0"
-              label: Monday
-            - value: "1"
-              label: Tuesday
-            - value: "2"
-              label: Wednesday
-            - value: "3"
-              label: Thursday
-            - value: "4"
-              label: Friday
-            - value: "5"
-              label: Saturday
-            - value: "6"
-              label: Sunday
+        number:
+          min: 0
+          max: 6
+          mode: box
 
 snooze:
   name: Snooze

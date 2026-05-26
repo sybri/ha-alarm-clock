@@ -9,12 +9,11 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.smart_alarm.const import (
     CONF_CONDITION_ENTITY,
-    CONF_DAYS,
     CONF_NAME,
+    CONF_SCHEDULE,
     CONF_SNOOZE_DURATION,
     CONF_START_SCRIPT,
     CONF_STOP_SCRIPT,
-    CONF_TIME,
     DEFAULT_SNOOZE_DURATION,
     DOMAIN,
     EVENT_DATA_REASON,
@@ -23,7 +22,6 @@ from custom_components.smart_alarm.const import (
     EVENT_TRIGGERED,
     STATE_TRIGGERED,
     STOP_REASON_MANUAL,
-    STOP_REASON_SNOOZE,
 )
 from custom_components.smart_alarm.coordinator import SmartAlarmCoordinator
 
@@ -36,8 +34,7 @@ def coord(hass: HomeAssistant) -> SmartAlarmCoordinator:
     entry.title = "Ev test"
     entry.data = {
         CONF_NAME: "Ev test",
-        CONF_TIME: "07:00",
-        CONF_DAYS: list(range(7)),
+        CONF_SCHEDULE: {str(d): "07:00" for d in range(7)},
         CONF_START_SCRIPT: "script.noop",
         CONF_STOP_SCRIPT: None,
     }
@@ -45,6 +42,12 @@ def coord(hass: HomeAssistant) -> SmartAlarmCoordinator:
         CONF_CONDITION_ENTITY: None,
         CONF_SNOOZE_DURATION: DEFAULT_SNOOZE_DURATION,
     }
+
+    def _update(target, *, data=None, **_kw):
+        if data is not None:
+            target.data = data
+
+    hass.config_entries.async_update_entry = MagicMock(side_effect=_update)
     return SmartAlarmCoordinator(hass, entry)
 
 

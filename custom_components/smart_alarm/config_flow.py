@@ -20,6 +20,7 @@ from .const import (
     CONF_CONDITION_ENTITY,
     CONF_DAYS,
     CONF_NAME,
+    CONF_SCHEDULE,
     CONF_SNOOZE_DURATION,
     CONF_START_SCRIPT,
     CONF_STOP_SCRIPT,
@@ -166,13 +167,15 @@ class SmartAlarmConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(f"{DOMAIN}_{slug}")
                 self._abort_if_unique_id_configured()
 
-                # Normalize days: list[str] from selector -> list[int]
-                days_int = sorted(int(d) for d in user_input[CONF_DAYS])
+                # Build the initial per-day schedule: every selected day gets
+                # the same starting time. Fine-tuning per day happens later in
+                # the Lovelace card.
+                time_value = user_input[CONF_TIME]
+                schedule = {str(int(d)): time_value for d in user_input[CONF_DAYS]}
 
                 data = {
                     CONF_NAME: user_input[CONF_NAME].strip(),
-                    CONF_TIME: user_input[CONF_TIME],
-                    CONF_DAYS: days_int,
+                    CONF_SCHEDULE: schedule,
                     CONF_START_SCRIPT: user_input[CONF_START_SCRIPT],
                     CONF_STOP_SCRIPT: user_input.get(CONF_STOP_SCRIPT) or None,
                 }
