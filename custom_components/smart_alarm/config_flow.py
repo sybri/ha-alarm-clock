@@ -57,6 +57,21 @@ def _slugify_name(name: str) -> str:
     return s or "alarm"
 
 
+def _optional_key(field: str, current_value: Any) -> vol.Optional:
+    """Build an Optional key with `suggested_value` rather than a default.
+
+    EntitySelector validates non-empty strings as entity IDs; passing
+    `default=""` makes Voluptuous reject the form when the user leaves the
+    field empty. Using `description={"suggested_value": ...}` lets us preset
+    the current value without forcing validation.
+    """
+    if current_value:
+        return vol.Optional(
+            field, description={"suggested_value": current_value}
+        )
+    return vol.Optional(field)
+
+
 def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
     """Return the schema for the main user step."""
     d = defaults or {}
@@ -78,9 +93,7 @@ def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="script")
             ),
-            vol.Optional(
-                CONF_STOP_SCRIPT, default=d.get(CONF_STOP_SCRIPT, "") or ""
-            ): selector.EntitySelector(
+            _optional_key(CONF_STOP_SCRIPT, d.get(CONF_STOP_SCRIPT)): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="script")
             ),
         }
@@ -92,9 +105,8 @@ def _options_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
     d = defaults or {}
     return vol.Schema(
         {
-            vol.Optional(
-                CONF_CONDITION_ENTITY,
-                default=d.get(CONF_CONDITION_ENTITY, "") or "",
+            _optional_key(
+                CONF_CONDITION_ENTITY, d.get(CONF_CONDITION_ENTITY)
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="binary_sensor")
             ),
