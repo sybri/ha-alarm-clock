@@ -11,7 +11,6 @@ import {
   DOMAIN,
   EDITOR_NAME,
   STATE_DISABLED,
-  STATE_IDLE,
   STATE_SNOOZED,
   STATE_TRIGGERED,
 } from "./const";

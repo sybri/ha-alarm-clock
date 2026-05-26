@@ -26,14 +26,6 @@ export class SmartAlarmCardEditor extends LitElement implements LovelaceCardEdit
     this._fireChange({ ...this._config!, entity: value });
   };
 
-  private _onText = (key: keyof SmartAlarmCardConfig) =>
-    (ev: CustomEvent): void => {
-      const value = (ev.detail as { value?: string }).value;
-      const next = { ...this._config!, [key]: value || undefined };
-      if (!value) delete (next as Record<string, unknown>)[key];
-      this._fireChange(next as SmartAlarmCardConfig);
-    };
-
   private _onBool = (key: keyof SmartAlarmCardConfig) =>
     (ev: CustomEvent): void => {
       const value = (ev.detail as { value?: boolean }).value;
