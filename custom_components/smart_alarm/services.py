@@ -1,15 +1,16 @@
-"""Service registration for Smart Alarm.
-
-Phase 1: skeleton (registers handlers but most are no-ops).
-Phase 3 will implement the real behaviour (enable, disable, set_time,
-set_days, snooze, stop, trigger_now).
-"""
+"""Service registration for Smart Alarm."""
 
 from __future__ import annotations
 
 import logging
+import re
+from typing import Iterable
 
+import voluptuous as vol
+from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 
 from .const import (
     DOMAIN,
@@ -21,8 +22,112 @@ from .const import (
     SERVICE_STOP,
     SERVICE_TRIGGER_NOW,
 )
+from .coordinator import SmartAlarmCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+_TIME_RE = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
+
+ATTR_TIME = "time"
+ATTR_DAYS = "days"
+
+_BASE_SCHEMA = vol.Schema(
+    {vol.Required(ATTR_ENTITY_ID): cv.entity_id},
+    extra=vol.ALLOW_EXTRA,
+)
+
+_SET_TIME_SCHEMA = _BASE_SCHEMA.extend(
+    {vol.Required(ATTR_TIME): vol.All(str, vol.Match(_TIME_RE))}
+)
+
+_SET_DAYS_SCHEMA = _BASE_SCHEMA.extend(
+    {
+        vol.Required(ATTR_DAYS): vol.All(
+            cv.ensure_list,
+            [vol.All(vol.Coerce(int), vol.Range(min=0, max=6))],
+        )
+    }
+)
+
+
+def _resolve_coordinator(
+    hass: HomeAssistant, entity_id: str
+) -> SmartAlarmCoordinator:
+    """Find the coordinator whose sensor entity matches entity_id."""
+    registry = er.async_get(hass)
+    entry = registry.async_get(entity_id)
+    if entry is None or entry.platform != DOMAIN:
+        raise HomeAssistantError(
+            f"{entity_id} is not a smart_alarm entity"
+        )
+    coordinators: dict[str, SmartAlarmCoordinator] = hass.data.get(DOMAIN, {})
+    coord = coordinators.get(entry.config_entry_id)
+    if coord is None:
+        raise HomeAssistantError(
+            f"No active Smart Alarm coordinator for {entity_id}"
+        )
+    return coord
+
+
+def _coordinators_for_call(
+    hass: HomeAssistant, call: ServiceCall
+) -> Iterable[SmartAlarmCoordinator]:
+    """Resolve all coordinators targeted by a service call."""
+    ids = call.data.get(ATTR_ENTITY_ID)
+    if isinstance(ids, str):
+        ids = [ids]
+    for entity_id in ids or []:
+        yield _resolve_coordinator(hass, entity_id)
+
+
+@callback
+def async_register_services(hass: HomeAssistant) -> None:
+    """Register all Smart Alarm services."""
+
+    async def _enable(call: ServiceCall) -> None:
+        for coord in _coordinators_for_call(hass, call):
+            await coord.async_enable()
+
+    async def _disable(call: ServiceCall) -> None:
+        for coord in _coordinators_for_call(hass, call):
+            await coord.async_disable()
+
+    async def _set_time(call: ServiceCall) -> None:
+        time_value = call.data[ATTR_TIME]
+        for coord in _coordinators_for_call(hass, call):
+            await coord.async_set_time(time_value)
+
+    async def _set_days(call: ServiceCall) -> None:
+        days = call.data[ATTR_DAYS]
+        for coord in _coordinators_for_call(hass, call):
+            await coord.async_set_days(days)
+
+    async def _snooze(call: ServiceCall) -> None:
+        for coord in _coordinators_for_call(hass, call):
+            await coord.async_snooze()
+
+    async def _stop(call: ServiceCall) -> None:
+        for coord in _coordinators_for_call(hass, call):
+            await coord.async_stop()
+
+    async def _trigger_now(call: ServiceCall) -> None:
+        for coord in _coordinators_for_call(hass, call):
+            await coord.async_trigger_now()
+
+    hass.services.async_register(DOMAIN, SERVICE_ENABLE, _enable, schema=_BASE_SCHEMA)
+    hass.services.async_register(DOMAIN, SERVICE_DISABLE, _disable, schema=_BASE_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_SET_TIME, _set_time, schema=_SET_TIME_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SET_DAYS, _set_days, schema=_SET_DAYS_SCHEMA
+    )
+    hass.services.async_register(DOMAIN, SERVICE_SNOOZE, _snooze, schema=_BASE_SCHEMA)
+    hass.services.async_register(DOMAIN, SERVICE_STOP, _stop, schema=_BASE_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_TRIGGER_NOW, _trigger_now, schema=_BASE_SCHEMA
+    )
+
 
 _ALL_SERVICES = (
     SERVICE_ENABLE,
@@ -36,23 +141,8 @@ _ALL_SERVICES = (
 
 
 @callback
-def async_register_services(hass: HomeAssistant) -> None:
-    """Register all Smart Alarm services."""
-
-    async def _placeholder(call: ServiceCall) -> None:
-        """Phase-1 placeholder. Will be wired up in Phase 3."""
-        _LOGGER.warning(
-            "Smart Alarm service %s called but not yet implemented (phase 1)",
-            call.service,
-        )
-
-    for service_name in _ALL_SERVICES:
-        hass.services.async_register(DOMAIN, service_name, _placeholder)
-
-
-@callback
 def async_unregister_services(hass: HomeAssistant) -> None:
     """Unregister all Smart Alarm services."""
-    for service_name in _ALL_SERVICES:
-        if hass.services.has_service(DOMAIN, service_name):
-            hass.services.async_remove(DOMAIN, service_name)
+    for name in _ALL_SERVICES:
+        if hass.services.has_service(DOMAIN, name):
+            hass.services.async_remove(DOMAIN, name)

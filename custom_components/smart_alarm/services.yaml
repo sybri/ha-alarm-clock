@@ -1,0 +1,87 @@
+enable:
+  name: Enable
+  description: Enable an alarm (state idle, recompute next_trigger).
+  target:
+    entity:
+      integration: smart_alarm
+      domain: sensor
+
+disable:
+  name: Disable
+  description: Disable an alarm.
+  target:
+    entity:
+      integration: smart_alarm
+      domain: sensor
+
+set_time:
+  name: Set time
+  description: Update the alarm time.
+  target:
+    entity:
+      integration: smart_alarm
+      domain: sensor
+  fields:
+    time:
+      name: Time
+      description: New alarm time in HH:MM format.
+      required: true
+      example: "07:00"
+      selector:
+        text:
+
+set_days:
+  name: Set active days
+  description: Set which days the alarm is active (Mon=0..Sun=6).
+  target:
+    entity:
+      integration: smart_alarm
+      domain: sensor
+  fields:
+    days:
+      name: Days
+      description: List of active weekday integers (0=Mon..6=Sun).
+      required: true
+      example: "[0, 1, 2, 3, 4]"
+      selector:
+        select:
+          multiple: true
+          options:
+            - value: "0"
+              label: Monday
+            - value: "1"
+              label: Tuesday
+            - value: "2"
+              label: Wednesday
+            - value: "3"
+              label: Thursday
+            - value: "4"
+              label: Friday
+            - value: "5"
+              label: Saturday
+            - value: "6"
+              label: Sunday
+
+snooze:
+  name: Snooze
+  description: Snooze a currently-firing alarm.
+  target:
+    entity:
+      integration: smart_alarm
+      domain: sensor
+
+stop:
+  name: Stop
+  description: Stop a currently-firing or snoozed alarm.
+  target:
+    entity:
+      integration: smart_alarm
+      domain: sensor
+
+trigger_now:
+  name: Trigger now
+  description: Force the alarm to fire immediately (test button).
+  target:
+    entity:
+      integration: smart_alarm
+      domain: sensor
