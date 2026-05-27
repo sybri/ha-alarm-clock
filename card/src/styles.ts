@@ -138,6 +138,11 @@ export const cardStyles = css`
     font-weight: 600;
     color: var(--primary-text-color);
   }
+  .time-row {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+  }
   .slider-row {
     display: flex;
     align-items: center;

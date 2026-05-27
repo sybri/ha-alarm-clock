@@ -166,23 +166,13 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
     }
   };
 
-  private _onHour = (ev: Event): void => {
-    const h = parseInt((ev.target as HTMLInputElement).value, 10);
-    const cur = this._dayTime(this._selectedDay) ?? DEFAULT_TIME;
-    const m = cur.split(":")[1];
+  private _onDayTimeChanged = (ev: CustomEvent): void => {
+    // ha-time-input emits "HH:MM:SS"; backend wants "HH:MM".
+    const value = (ev.detail as { value?: string }).value;
+    if (!value) return;
     this._call("set_day_time", {
       day: this._selectedDay,
-      time: `${String(h).padStart(2, "0")}:${m}`,
-    });
-  };
-
-  private _onMinute = (ev: Event): void => {
-    const m = parseInt((ev.target as HTMLInputElement).value, 10);
-    const cur = this._dayTime(this._selectedDay) ?? DEFAULT_TIME;
-    const h = cur.split(":")[0];
-    this._call("set_day_time", {
-      day: this._selectedDay,
-      time: `${h}:${String(m).padStart(2, "0")}`,
+      time: value.slice(0, 5),
     });
   };
 
@@ -303,7 +293,11 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
     const day = this._selectedDay;
     const t = this._dayTime(day);
     const enabled = !!t;
-    const [h, m] = (t ?? DEFAULT_TIME).split(":").map((x) => parseInt(x, 10));
+    // ha-time-input honours the card's 12h/24h preference via a cloned locale.
+    const locale = {
+      ...this.hass.locale,
+      time_format: this._use12h() ? "12" : "24",
+    } as HomeAssistant["locale"];
 
     return html`
       <div class="editor">
@@ -316,29 +310,12 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
         </div>
         ${enabled
           ? html`
-              <div class="slider-row">
-                <span class="slider-label">Heure</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="23"
-                  step="1"
-                  .value=${String(h)}
-                  @input=${this._onHour}
-                />
-                <span class="slider-value">${this._fmtTime(t!)}</span>
-              </div>
-              <div class="slider-row">
-                <span class="slider-label">Minute</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="59"
-                  step="1"
-                  .value=${String(m)}
-                  @input=${this._onMinute}
-                />
-                <span class="slider-value">${String(m).padStart(2, "0")}</span>
+              <div class="time-row">
+                <ha-time-input
+                  .locale=${locale}
+                  .value=${`${t}:00`}
+                  @value-changed=${this._onDayTimeChanged}
+                ></ha-time-input>
               </div>
             `
           : html`<div class="day-off-hint">
