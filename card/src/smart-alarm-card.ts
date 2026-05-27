@@ -39,6 +39,33 @@ function backendWeekday(d: Date): number {
   return (d.getDay() + 6) % 7;
 }
 
+// ha-time-input (and other ha-* form elements) aren't preloaded on Lovelace
+// views. Pulling the entities-card config element forces HA to import its
+// form components, registering ha-time-input as a side effect.
+let _haComponentsPromise: Promise<void> | undefined;
+async function ensureHaComponents(): Promise<void> {
+  if (customElements.get("ha-time-input")) return;
+  if (_haComponentsPromise) return _haComponentsPromise;
+  _haComponentsPromise = (async () => {
+    const helpers = await (
+      window as unknown as {
+        loadCardHelpers?: () => Promise<{
+          createCardElement: (c: unknown) => Promise<{
+            constructor: { getConfigElement?: () => Promise<unknown> };
+          }>;
+        }>;
+      }
+    ).loadCardHelpers?.();
+    if (!helpers) return;
+    const card = await helpers.createCardElement({
+      type: "entities",
+      entities: [],
+    });
+    await card.constructor.getConfigElement?.();
+  })();
+  return _haComponentsPromise;
+}
+
 @customElement(CARD_NAME)
 export class SmartAlarmCard extends LitElement implements LovelaceCard {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -74,6 +101,8 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
     this._clockTimer = window.setInterval(() => {
       this._now = new Date();
     }, 1000);
+    // Make sure ha-time-input is registered, then re-render once it is.
+    ensureHaComponents().then(() => this.requestUpdate());
   }
 
   public disconnectedCallback(): void {
@@ -174,6 +203,12 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
       day: this._selectedDay,
       time: value.slice(0, 5),
     });
+  };
+
+  private _onNativeTime = (ev: Event): void => {
+    const value = (ev.target as HTMLInputElement).value; // "HH:MM"
+    if (!value) return;
+    this._call("set_day_time", { day: this._selectedDay, time: value });
   };
 
   private _onTestNow = (): void => this._call("trigger_now");
@@ -311,11 +346,22 @@ export class SmartAlarmCard extends LitElement implements LovelaceCard {
         ${enabled
           ? html`
               <div class="time-row">
-                <ha-time-input
-                  .locale=${locale}
-                  .value=${`${t}:00`}
-                  @value-changed=${this._onDayTimeChanged}
-                ></ha-time-input>
+                ${customElements.get("ha-time-input")
+                  ? html`
+                      <ha-time-input
+                        .locale=${locale}
+                        .value=${`${t}:00`}
+                        @value-changed=${this._onDayTimeChanged}
+                      ></ha-time-input>
+                    `
+                  : html`
+                      <input
+                        class="time-native"
+                        type="time"
+                        .value=${t!}
+                        @change=${this._onNativeTime}
+                      />
+                    `}
               </div>
             `
           : html`<div class="day-off-hint">
